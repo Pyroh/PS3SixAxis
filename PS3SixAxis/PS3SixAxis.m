@@ -7,17 +7,12 @@
 //
 
 #import "PS3SixAxis.h"
-#import <IOKit/hid/IOHIDLib.h>
-#import <Cocoa/Cocoa.h>
-#import <IOBluetooth/objc/IOBluetoothHostController.h>
-
-//#import "sixaxis.h"
 
 #pragma mark -
 #pragma mark conditional macro's
 
 #define DO_BLUETOOTH 1
-#define DO_SET_MASTER (DO_BLUETOOTH && 1)
+//#define DO_SET_MASTER (DO_BLUETOOTH && 1)
 
 //#define TRACE 1
 
@@ -83,14 +78,6 @@ enum DirectionButton {
 
 @interface PS3SixAxis (Private)
 BOOL isConnected;
-BOOL doBluetooth;
-IOHIDManagerRef hidManagerRef;
-IOHIDDeviceRef gIOHIDDeviceRef = NULL;
-
-BluetoothDeviceAddress gMasterBluetoothAddress;
-Boolean gMasterBluetoothAddressValid = FALSE;
-
-BOOL isUseBuffered = YES;
 
 BOOL isLeftStickDown, preIsLeftStickDown;
 BOOL isRightStickDown, preIsRightStickDown;
@@ -116,8 +103,6 @@ int preLeftStickX, preLeftStickY;
 int preRightStickX, preRightStickY;
 
 unsigned int mx, my, mz;
-
-PS3SixAxis *target = NULL;
 
 - (void) parse:(uint8_t*)data l:(CFIndex)length;
 - (void) parseUnBuffered:(uint8_t*)data l:(CFIndex)length;
@@ -153,7 +138,7 @@ static IOReturn Set_DeviceFeatureReport(IOHIDDeviceRef inIOHIDDeviceRef, CFIndex
 }
 
 // ask a PS3 IOHIDDevice for the bluetooth address of its master
-static IOReturn PS3_GetMasterBluetoothAddress(IOHIDDeviceRef inIOHIDDeviceRef, BluetoothDeviceAddress*ioBluetoothDeviceAddress) {
+static IOReturn PS3_GetMasterBluetoothAddress(IOHIDDeviceRef inIOHIDDeviceRef, BluetoothDeviceAddress *ioBluetoothDeviceAddress) {
 	IOReturn result = noErr;
 	CFIndex reportID = 0xF5;
 	uint8_t report[8];
@@ -169,125 +154,14 @@ static IOReturn PS3_GetMasterBluetoothAddress(IOHIDDeviceRef inIOHIDDeviceRef, B
 	return result;
 }
 
-// tell a PS3 IOHIDDevice what bluetooth address to use as its master
-static IOReturn PS3_SetMasterBluetoothAddress(IOHIDDeviceRef inIOHIDDeviceRef, BluetoothDeviceAddress inBluetoothDeviceAddress) {
-	IOReturn result = paramErr;
-	if (inIOHIDDeviceRef) {
-		CFIndex reportID = 0xF5;
-		uint8_t report[8];		
-		report[0] = 0x01; report[1] = 0x00;
-		memcpy(&report[2], &inBluetoothDeviceAddress, sizeof(inBluetoothDeviceAddress));
-		
-		CFIndex reportSize = sizeof(report);
-		result = IOHIDDeviceSetReport(inIOHIDDeviceRef, kIOHIDReportTypeFeature, reportID, report, reportSize);
-		if (noErr != result) {
-			[target sendDeviceConnectionError:101];
-			printf("%s, IOHIDDeviceSetReport error: %ld (0x%08lX ).\n", __PRETTY_FUNCTION__, (long int) result, (long int) result);
-		}
-	}
-	return(result);
-}
-
-// ask a PS3 IOHIDDevice for its bluetooth address
-static IOReturn PS3_GetDeviceBluetoothAddress(IOHIDDeviceRef inIOHIDDeviceRef, BluetoothDeviceAddress*ioBluetoothDeviceAddress) {
-	IOReturn result = noErr;
-	CFIndex reportID = 0xF2;
-	uint8_t report[17];
-	CFIndex reportSize = sizeof(report);
-	result = IOHIDDeviceGetReport(inIOHIDDeviceRef, kIOHIDReportTypeFeature, reportID, report, &reportSize);
-	if (noErr == result) {
-		if (ioBluetoothDeviceAddress) {
-			memcpy(ioBluetoothDeviceAddress, &report[4], sizeof(*ioBluetoothDeviceAddress));
-		}
-	} else{
-		[target sendDeviceConnectionError:102];
-	}
-	return result;
-}
-
-// tell a PS3 IOHIDDevice to start sending input reports
-static IOReturn PS3_StartInputReports(IOHIDDeviceRef inIOHIDDeviceRef) {
-	uint8_t buffer[5] = {0x42, 0x03, 0x00, 0x00};
-	return(Set_DeviceFeatureReport(inIOHIDDeviceRef, 0xF4, buffer, sizeof(buffer)));
-}
-
 // this will be called when an input report is received
 static void Handle_IOHIDDeviceIOHIDReportCallback(void* inContext, IOReturn inResult, void* inSender, IOHIDReportType inType, uint32_t inReportID, uint8_t* inReport, CFIndex inReportLength) {
-	if(isUseBuffered) {
-		[target parse:inReport l:inReportLength];
+	PS3SixAxis *context = (PS3SixAxis*)inContext;
+	if(context->useBuffered) {
+		[context parse:inReport l:inReportLength];
 	} else {
-		[target parseUnBuffered:inReport l:inReportLength];
+		[context parseUnBuffered:inReport l:inReportLength];
 	}
-
-#ifdef TRACE	
-	unsigned char ReportType;     //Report Type 01
-    unsigned char Reserved1;      // Unknown
-    unsigned char ButtonState;    // Main buttons
-    unsigned char PSButtonState;  // PS button
-    unsigned char Reserved2;      // Unknown
-    unsigned char LeftStickX;     // left Joystick X axis 0 - 255, 128 is mid
-    unsigned char LeftStickY;     // left Joystick Y axis 0 - 255, 128 is mid
-    unsigned char RightStickX;    // right Joystick X axis 0 - 255, 128 is mid
-    unsigned char RightStickY;    // right Joystick Y axis 0 - 255, 128 is mid
-    unsigned char Reserved3[4];   // Unknown
-    unsigned char PressureUp;     // digital Pad Up button Pressure 0 - 255
-    unsigned char PressureRight;  // digital Pad Right button Pressure 0 - 255
-    unsigned char PressureDown;   // digital Pad Down button Pressure 0 - 255
-    unsigned char PressureLeft;   // digital Pad Left button Pressure 0 - 255
-    unsigned char PressureL2;     // digital Pad L2 button Pressure 0 - 255
-    unsigned char PressureR2;     // digital Pad R2 button Pressure 0 - 255
-    unsigned char PressureL1;     // digital Pad L1 button Pressure 0 - 255
-    unsigned char PressureR1;     // digital Pad R1 button Pressure 0 - 255
-    unsigned char PressureTriangle;   // digital Pad Triangle button Pressure 0 - 255
-    unsigned char PressureCircle;     // digital Pad Circle button Pressure 0 - 255
-    unsigned char PressureCross;      // digital Pad Cross button Pressure 0 - 255
-    unsigned char PressureSquare;     // digital Pad Square button Pressure 0 - 255
-    unsigned char Reserved4[3];   // Unknown
-    unsigned char Charge;         // charging status ? 02 = charge, 03 = normal
-    unsigned char Power;          // Battery status ?
-    unsigned char Connection;     // Connection Type ?
-    unsigned char Reserved5[9];   // Unknown
-    unsigned int AccelX;          // X axis accelerometer Big Endian 0 - 1023
-    unsigned int AccelY;          // Y axis accelerometer Big Endian 0 - 1023
-    unsigned int AccelZ;          // Z axis accelerometer Big Endian 0 - 1023
-    unsigned int GyroZ; 
-
-	// Copy bytes to their respective variables (incase they are not aligned correctly)
-	memcpy( &ReportType, &inReport[1], sizeof( unsigned char ) );
-	memcpy( &Reserved1, &inReport[2], sizeof( unsigned char ) );
-	memcpy( &ButtonState, &inReport[3], sizeof( unsigned char ) );
-	memcpy( &PSButtonState, &inReport[4], sizeof( unsigned char ) );
-	memcpy( &Reserved2, &inReport[5], sizeof( unsigned char ) );
-	memcpy( &LeftStickX, &inReport[6], sizeof( unsigned char ) );
-	memcpy( &LeftStickY, &inReport[7], sizeof( unsigned char ) );
-	memcpy( &RightStickX, &inReport[8], sizeof( unsigned char ) );
-	memcpy( &RightStickY, &inReport[9], sizeof( unsigned char ) );
-	memcpy( &Reserved3, &inReport[10], sizeof( unsigned char ) );
-	
-	memcpy( &PressureUp, &inReport[14], sizeof( unsigned char ) );
-	memcpy( &PressureRight, &inReport[15], sizeof( unsigned char ) );
-	memcpy( &PressureDown, &inReport[16], sizeof( unsigned char ) );
-	memcpy( &PressureLeft, &inReport[17], sizeof( unsigned char ) );
-	memcpy( &PressureL2, &inReport[18], sizeof( unsigned char ) );
-	memcpy( &PressureR2, &inReport[19], sizeof( unsigned char ) );
-	memcpy( &PressureL1, &inReport[20], sizeof( unsigned char ) );
-	memcpy( &PressureR1, &inReport[21], sizeof( unsigned char ) );
-	
-	memcpy( &PressureTriangle, &inReport[22], sizeof( unsigned char ) );
-	memcpy( &PressureCircle, &inReport[23], sizeof( unsigned char ) );
-	memcpy( &PressureCross, &inReport[24], sizeof( unsigned char ) );
-	memcpy( &PressureSquare, &inReport[25], sizeof( unsigned char ) );
-	
-	memcpy( &Reserved4, &inReport[30], sizeof( unsigned char ) );
-	memcpy( &Charge, &inReport[31], sizeof( unsigned char ) );
-	memcpy( &Power, &inReport[32], sizeof( unsigned char ) );
-	memcpy( &Connection, &inReport[33], sizeof( unsigned char ) );
-	memcpy( &Reserved5, &inReport[34], sizeof( unsigned char ) );
-	memcpy( &AccelX, &inReport[43], sizeof( unsigned int ) );
-	memcpy( &AccelY, &inReport[44], sizeof( unsigned int ) );
-	memcpy( &AccelZ, &inReport[45], sizeof( unsigned int ) );
-	memcpy( &GyroZ, &inReport[46], sizeof( unsigned int ) );
-#endif	
 }
 
 static Boolean IOHIDDevice_GetLongProperty_( IOHIDDeviceRef inIOHIDDeviceRef, CFStringRef inKey, long * outValue ) {
@@ -306,121 +180,37 @@ static Boolean IOHIDDevice_GetLongProperty_( IOHIDDeviceRef inIOHIDDeviceRef, CF
 	return result;
 }
 
-long IOHIDDevice_GetVendorID_( IOHIDDeviceRef inIOHIDDeviceRef ) {
-	long result = 0;
-	( void ) IOHIDDevice_GetLongProperty_( inIOHIDDeviceRef, CFSTR( kIOHIDVendorIDKey ), &result );
-	return result;
-}
-
-long IOHIDDevice_GetProductID_( IOHIDDeviceRef inIOHIDDeviceRef ) {
-	long result = 0;
-	( void ) IOHIDDevice_GetLongProperty_( inIOHIDDeviceRef, CFSTR( kIOHIDProductIDKey ), &result );
-	return result;
-}
-
 // this will be called when the HID Manager matches a new (hot plugged) HID device
 static void Handle_DeviceMatchingCallback(void* inContext, IOReturn inResult, void* inSender, IOHIDDeviceRef inIOHIDDeviceRef) {
-
+	PS3SixAxis *context = (PS3SixAxis*)inContext;
 	IOReturn ioReturn = noErr;
 	
 	// Device VendorID/ProductID:   0x054C/0x0268   (Sony Corporation)
-	long vendorID = IOHIDDevice_GetVendorID_(inIOHIDDeviceRef);
-	long productID = IOHIDDevice_GetProductID_(inIOHIDDeviceRef);
-
+	long vendorID = 0;
+	long productID = 0;
+	
+	IOHIDDevice_GetLongProperty_( inIOHIDDeviceRef, CFSTR( kIOHIDVendorIDKey ), &vendorID );
+	IOHIDDevice_GetLongProperty_( inIOHIDDeviceRef, CFSTR( kIOHIDProductIDKey ), &productID );
+	
 	// Sony PlayStation(R)3 Controller
 	if ((0x054C != vendorID) || (0x0268 != productID)) {
 		return;
 	}
-	gIOHIDDeviceRef = inIOHIDDeviceRef;
-	
-	if (doBluetooth) {
-#if DO_BLUETOOTH
-		Boolean devicesMasterBluetoothAddressValid = FALSE;
-		Boolean masterBluetoothAddressesMatch = TRUE;
-		
-		BluetoothDeviceAddress tBtDeviceAddr;
-		ioReturn = PS3_GetMasterBluetoothAddress(inIOHIDDeviceRef, &tBtDeviceAddr);
-		
-		if (noErr == ioReturn) {
-			devicesMasterBluetoothAddressValid = TRUE;
-			//printf("<%02hX-%02hX-%02hX-%02hX-%02hX-%02hX>\n", tBtDeviceAddr.data[0], tBtDeviceAddr.data[1],tBtDeviceAddr.data[2], tBtDeviceAddr.data[3], tBtDeviceAddr.data[4],tBtDeviceAddr.data[5]);
-			masterBluetoothAddressesMatch = TRUE;
-			int idx;
-			for (idx = 0; idx < 6; idx++) {
-				if (tBtDeviceAddr.data[idx] != gMasterBluetoothAddress.data[idx]) {
-					masterBluetoothAddressesMatch = FALSE;
-					break;
-				}
-			}
-			
-			if (!masterBluetoothAddressesMatch) {
-				[target sendDeviceConnectionError:103];
-			}
-		} else {
-			[target sendDeviceConnectionError:104];
-			//printf("%s, PS3_GetMasterBluetoothAddress error: %ld (0x%08lX ).\n", __PRETTY_FUNCTION__, (long int) ioReturn, (long int) ioReturn);
-		}
-		{
-			//printf("	Getting devices current Bluetooth address\n");
-			BluetoothDeviceAddress tBtDeviceAddr;
-			IOReturn ioReturn = PS3_GetDeviceBluetoothAddress(inIOHIDDeviceRef, &tBtDeviceAddr);
-			
-			if (noErr == ioReturn) {
-				//printf("<%02hX-%02hX-%02hX-%02hX-%02hX-%02hX>\n",tBtDeviceAddr.data[0], tBtDeviceAddr.data[1], tBtDeviceAddr.data[2], tBtDeviceAddr.data[3],tBtDeviceAddr.data[4],tBtDeviceAddr.data[5]);
-			}
-		}
-#endif //  DO_BLUETOOTH
-		
-#if (DO_BLUETOOTH && DO_SET_MASTER)
-		do {
-			if (!gMasterBluetoothAddressValid) {
-				//printf("	NO BLUETOOTH!\n");
-				[target sendDeviceConnectionError:105];
-				break;
-			}
-			
-			if (devicesMasterBluetoothAddressValid && !masterBluetoothAddressesMatch) {
-				//printf("	Setting devices master Bluetooth address\n");
-				ioReturn = PS3_SetMasterBluetoothAddress(inIOHIDDeviceRef, gMasterBluetoothAddress);
-				
-				if (noErr == ioReturn) {
-					//printf("	Getting devices current master Bluetooth address\n");
-					BluetoothDeviceAddress tBtDeviceAddr;
-					IOReturn ioReturn = PS3_GetMasterBluetoothAddress(inIOHIDDeviceRef, &tBtDeviceAddr);
-					
-					if (noErr == ioReturn) {
-						//printf("<%02hX-%02hX-%02hX-%02hX-%02hX-%02hX>\n",tBtDeviceAddr.data[0],tBtDeviceAddr.data[1], tBtDeviceAddr.data[2], tBtDeviceAddr.data[3],tBtDeviceAddr.data[4],tBtDeviceAddr.data[5]);
-						masterBluetoothAddressesMatch = TRUE;
-						int idx;
-						
-						for (idx = 0; idx < 6; idx++) {
-							if (tBtDeviceAddr.data[idx] != gMasterBluetoothAddress.data[idx]) {
-								masterBluetoothAddressesMatch = FALSE;
-								break;
-							}
-						}
-					}
-				} else {
-					//printf("%s, PS3_SetMasterBluetoothAddress error: %ld (0x%08lX ).\n", __PRETTY_FUNCTION__, (long int) ioReturn, (long int) ioReturn);
-					[target sendDeviceConnectionError:106];
-				}
-			}
-		} while (0);
-#endif // ( DO_BLUETOOTH && DO_SET_MASTER )
-	}
+	context->hidDeviceRef = inIOHIDDeviceRef;
 	
 	CFIndex reportSize = 64;
-	uint8_t*report = malloc(reportSize);
-	IOHIDDeviceRegisterInputReportCallback(inIOHIDDeviceRef, report, reportSize, Handle_IOHIDDeviceIOHIDReportCallback, nil);
-
-	[target sendDeviceConnected];
+	uint8_t *report = malloc(reportSize);
+	IOHIDDeviceRegisterInputReportCallback(inIOHIDDeviceRef, report, reportSize, Handle_IOHIDDeviceIOHIDReportCallback, inContext);
+	
+	[context sendDeviceConnected];
 }
 
 // this will be called when a HID device is removed (unplugged)
 static void Handle_RemovalCallback(void* inContext, IOReturn inResult, void* inSender, IOHIDDeviceRef inIOHIDDeviceRef) {
-	if (gIOHIDDeviceRef == inIOHIDDeviceRef) {
-		gIOHIDDeviceRef = NULL;
-		[target sendDeviceDisconnected];
+	PS3SixAxis *context = (PS3SixAxis*)inContext;
+	if (context->hidDeviceRef == inIOHIDDeviceRef) {
+		context->hidDeviceRef = NULL;
+		[context sendDeviceDisconnected];
 	}
 }
 
@@ -737,7 +527,7 @@ static void Handle_RemovalCallback(void* inContext, IOReturn inResult, void* inS
 		default:
 			break;
 	}
-
+	
 #pragma mark select and start button
 	if (isSelectButtonDown != preIsSelectButtonDown) {
 		if ([delegate respondsToSelector:@selector(onSelectButton:)]) {
@@ -751,7 +541,7 @@ static void Handle_RemovalCallback(void* inContext, IOReturn inResult, void* inS
 		}
 		preIsStartButtonDown = isStartButtonDown;
 	}
-
+	
 #pragma mark PSButton
 	//unsigned char PSButtonState;
 	//memcpy( &PSButtonState, &data[4], sizeof( unsigned char ) );
@@ -765,24 +555,24 @@ static void Handle_RemovalCallback(void* inContext, IOReturn inResult, void* inS
 	
 #pragma mark LeftStick
 	/*
-	unsigned char LeftStickX; // left Joystick X axis 0 - 255, 128 is mid
-    unsigned char LeftStickY; // left Joystick Y axis 0 - 255, 128 is mid
-	memcpy( &LeftStickX, &data[6], sizeof( unsigned char ) );
-	memcpy( &LeftStickY, &data[7], sizeof( unsigned char ) );
-	int leftStickX = (int)LeftStickX;
-	int leftStickY = (int)LeftStickY;
-	*/
+	 unsigned char LeftStickX; // left Joystick X axis 0 - 255, 128 is mid
+	 unsigned char LeftStickY; // left Joystick Y axis 0 - 255, 128 is mid
+	 memcpy( &LeftStickX, &data[6], sizeof( unsigned char ) );
+	 memcpy( &LeftStickY, &data[7], sizeof( unsigned char ) );
+	 int leftStickX = (int)LeftStickX;
+	 int leftStickY = (int)LeftStickY;
+	 */
 	int leftStickX = (int)data[6];
 	int leftStickY = (int)data[7];
 	if ((leftStickX != preLeftStickX) && (leftStickY != preLeftStickY)) {
 		/*
-		if ((preLeftStickX < 125 || preLeftStickX > 131) && (preLeftStickY < 125 || preLeftStickY > 131)) {
-			
-		} else {
-			preLeftStickX = 128;
-			preLeftStickY = 128;
-		}
-		*/
+		 if ((preLeftStickX < 125 || preLeftStickX > 131) && (preLeftStickY < 125 || preLeftStickY > 131)) {
+		 
+		 } else {
+		 preLeftStickX = 128;
+		 preLeftStickY = 128;
+		 }
+		 */
 		//printf( "LeftStick: %d, %d\n", (int)LeftStickX, (int)LeftStickY );
 		if ([delegate respondsToSelector:@selector(onLeftStick:pressed:)]) {
 			[delegate onLeftStick:NSMakePoint((float)data[6], (float)data[7]) pressed:isLeftStickDown];
@@ -793,13 +583,13 @@ static void Handle_RemovalCallback(void* inContext, IOReturn inResult, void* inS
 	
 #pragma mark RightStick
 	/*
-	unsigned char RightStickX; // right Joystick X axis 0 - 255, 128 is mid
-    unsigned char RightStickY; // right Joystick Y axis 0 - 255, 128 is mid
-	memcpy( &RightStickX, &data[8], sizeof( unsigned char ) );
-	memcpy( &RightStickY, &data[9], sizeof( unsigned char ) );
-	int rsx = (int)RightStickX;
-	int rsy = (int)RightStickY;
-	*/
+	 unsigned char RightStickX; // right Joystick X axis 0 - 255, 128 is mid
+	 unsigned char RightStickY; // right Joystick Y axis 0 - 255, 128 is mid
+	 memcpy( &RightStickX, &data[8], sizeof( unsigned char ) );
+	 memcpy( &RightStickY, &data[9], sizeof( unsigned char ) );
+	 int rsx = (int)RightStickX;
+	 int rsy = (int)RightStickY;
+	 */
 	int rsx = (int)data[8];
 	int rsy = (int)data[9];
 	if ((rsx != preRightStickX) && (rsy != preRightStickY)) {
@@ -976,7 +766,7 @@ static void Handle_RemovalCallback(void* inContext, IOReturn inResult, void* inS
 			[delegate onR1ButtonWithPressure:(NSInteger)data[21]];
 		}
 	}
-
+	
 	// North Button
 	// Cross North button Trigger
 	if(isNorthButtonDown != preIsNorthButtonDown) {
@@ -1056,65 +846,15 @@ static void Handle_RemovalCallback(void* inContext, IOReturn inResult, void* inS
 			[delegate onWestButtonWithPressure:(NSInteger)data[17]];
 		}
 	}
-	
-	/*
-	 Accelerometer data
-	 Field	 Example	 Purpose	 Note
-	 1	0208	 accX / sin(roll)	 On my sixaxis, +11 is rest, +126 is 90deg left, -100 is 90deg right
-	 2	01f2	 accY / sin(pitch)	 On my sixaxis, -19 is rest, -117 is 90deg nose down, +114 is 90deg, controls facing you
-	 3	0193	 accZ / gravity	 On my sixaxis, sat on the table is -93, upside down is 131
-	*/
-	/*
-	unsigned char ax1;
-	unsigned char ax2;
-	unsigned char ay1;
-	unsigned char ay2;
-	unsigned char az1;
-	unsigned char az2;
-	memcpy( &ax1, &data[40], sizeof( unsigned char ) );
-	memcpy( &ax2, &data[41], sizeof( unsigned char ) );
-	memcpy( &ay1, &data[42], sizeof( unsigned char ) );
-	memcpy( &ay2, &data[43], sizeof( unsigned char ) );
-	memcpy( &az1, &data[44], sizeof( unsigned char ) );
-	memcpy( &az2, &data[45], sizeof( unsigned char ) );
-	*/
-	/* Accelerometers */
-	
-	/*
-	*(uint16_t *)&data[40] = htons(clamp(0, mx + 512, 1023));
-	*(uint16_t *)&data[42] = htons(clamp(0, my + 512, 1023));
-	*(uint16_t *)&data[44] = htons(clamp(0, mz + 512, 1023));
-	
-	mx = ntohs(*(uint16_t *)&data[40]) - 512;
-	my = ntohs(*(uint16_t *)&data[42]) - 512;
-	mz = ntohs(*(uint16_t *)&data[44]) - 512;
-	*/
+
+	// Accelerometers
 	mx = data[40] | (data[41] << 8);
 	my = data[42] | (data[43] << 8);
 	mz = data[44] | (data[45] << 8);
-//	*(uint16_t *)&data[46] = htons(clamp(0, u->accel.gyro + 512, 1023));
-	
-	
-	//memcpy( &GyroZ, &data[46], sizeof( long int ) );
-	//#define byteswap(x) ((x >> 8) | (x << 8))
-	//int ax = (ax1 >> 8) | (ax2 << 8);
-    //int ay = (ay1 >> 8) | (ay2 << 8);
-    //int az = (az1 >> 8) | (az2 << 8);
-	//char ax = byteswap(ax2) + ax1;
-    //char ay = byteswap(ay2) + ay1;
-    //char az = byteswap(az2) + az1;
-    //int rz = data[46]<<8 | data[47]; // Needs another patch.
-	
+
 	if ([delegate respondsToSelector:@selector(onAxisX:Y:Z:)]) {
 		[delegate onAxisX:mx Y:my Z:mz];
 	}
-}
-
-int clamp(int min, int val, int max)
-{
-	if (val < min) return min;
-	if (val > max) return max;
-	return val;		
 }
 
 @end
@@ -1130,17 +870,10 @@ int clamp(int min, int val, int max)
 }
 
 - (id) initSixAixisControllerWithDelegate:(id<PS3SixAxisDelegate>)aDelegate {
-	self = [self init];
+	self = [super init];
 	if (self) {
 		delegate = aDelegate;
-	}
-	return self;
-}
-
-- (id) init {
-	self = [super init];
-	if(self) {
-		target = self;
+		useBuffered = YES;
 	}
 	return self;
 }
@@ -1157,20 +890,7 @@ int clamp(int min, int val, int max)
 	}
 	
 	int error = 0;
-	
-	if(enableBluetooth) {
-		IOBluetoothHostController*defaultController = [IOBluetoothHostController defaultController];
-		if (!defaultController) {
-			error = 1;
-		}
-		
-		if ([defaultController getAddress:&gMasterBluetoothAddress] != kIOReturnSuccess) {
-			error = 2;
-		}
-		gMasterBluetoothAddressValid = TRUE;
-	}
-	
-	doBluetooth = enableBluetooth;
+
 	if (enableBluetooth && error != 0) {
 		if ([delegate respondsToSelector:@selector(onDeviceConnectionError:)]) {
 			[delegate onDeviceConnectionError:error];
@@ -1180,18 +900,10 @@ int clamp(int min, int val, int max)
 	
 	hidManagerRef = IOHIDManagerCreate(kCFAllocatorDefault, kIOHIDOptionsTypeNone);
 	if (hidManagerRef) {
-		// match all devices
 		IOHIDManagerSetDeviceMatching(hidManagerRef, NULL);
-		
-		// Register device matching callback routine
-		// This routine will be called when a new (matching) device is connected.
+		//IOHIDManagerSetDeviceMatchingMultiple(hidManagerRef, NULL);
 		IOHIDManagerRegisterDeviceMatchingCallback(hidManagerRef, Handle_DeviceMatchingCallback, self);
-		
-		// Registers a routine to be called when any currently enumerated device is removed.
-		// This routine will be called when a (matching) device is disconnected.
 		IOHIDManagerRegisterDeviceRemovalCallback(hidManagerRef,Handle_RemovalCallback, self);
-		
-		// schedule us with the runloop
 		IOHIDManagerScheduleWithRunLoop(hidManagerRef, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
 		
 		IOReturn ioReturn = IOHIDManagerOpen(hidManagerRef, kIOHIDOptionsTypeNone);
@@ -1206,7 +918,7 @@ int clamp(int min, int val, int max)
 			[delegate onDeviceConnectionError:3];
 		}
 	}
-
+	
 }
 
 - (void)disconnect {
@@ -1233,7 +945,7 @@ int clamp(int min, int val, int max)
 }
 
 - (void)setUseBuffered:(BOOL)doUseBuffered {
-	useBuffered = isUseBuffered = doUseBuffered;
+	useBuffered = doUseBuffered;
 }
 
 - (BOOL)useBuffered {

@@ -6,7 +6,9 @@
 //  Copyright 2010 Outcut. All rights reserved.
 //
 
-#import <Cocoa/Cocoa.h>
+#import <Foundation/Foundation.h>
+#import <IOKit/hid/IOHIDLib.h>
+#import <IOBluetooth/objc/IOBluetoothHostController.h>
 
 
 @protocol PS3SixAxisDelegate <NSObject>
@@ -62,6 +64,8 @@
 @private
 	id<PS3SixAxisDelegate> delegate;
 	BOOL useBuffered;
+	IOHIDManagerRef hidManagerRef;
+	IOHIDDeviceRef hidDeviceRef;
 }
 
 + (id) sixAixisController;
