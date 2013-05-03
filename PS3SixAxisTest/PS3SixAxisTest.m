@@ -33,6 +33,8 @@
 
 @synthesize leftStick, rightStick;
 
+@synthesize accellX, accellY, accellZ;
+
 -(void)applicationDidFinishLaunching:(NSNotification *)aNotification {
 	ps3SixAxis = [PS3SixAxis sixAixisControllerWithDelegate:self];
 	[disconnectButton setEnabled:NO];
@@ -61,7 +63,7 @@
 }
 
 - (void) onDeviceConnectionError:(NSInteger)error {
-	NSLog(@"%s %d", __PRETTY_FUNCTION__, error);
+	NSLog(@"%s %ld", __PRETTY_FUNCTION__, (long)error);
 	switch (error) {
 		case 0:
 			NSLog(@"");
@@ -71,8 +73,11 @@
 	}
 }
 
-- (void) onAxisX:(int)x Y:(int)y Z:(int)z {
-	//NSLog(@"%s x:%d y:%d z:%d", __PRETTY_FUNCTION__, x, y, z);
+- (void) onAxisX:(NSInteger)x Y:(NSInteger)y Z:(NSInteger)z {
+	//NSLog(@"%s x:%ld y:%ld z:%ld", __PRETTY_FUNCTION__, (long)x, y, z);
+    [accellX setIntegerValue:x];
+    [accellY setIntegerValue:y];
+    [accellZ setIntegerValue:z];
 }
 
 - (void) onLeftStick:(NSPoint)axis pressed:(BOOL)isPressed {

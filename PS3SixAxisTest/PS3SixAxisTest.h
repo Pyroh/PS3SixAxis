@@ -50,6 +50,10 @@
 	
 	SixAxisStick *leftStick;
 	SixAxisStick *rightStick;
+    
+    NSLevelIndicator *accellX;
+    NSLevelIndicator *accellY;
+    NSLevelIndicator *accellZ;
 }
 
 @property (assign) IBOutlet NSButton *connectButton;
@@ -90,6 +94,10 @@
 
 @property (assign) IBOutlet SixAxisStick *leftStick;
 @property (assign) IBOutlet SixAxisStick *rightStick;
+
+@property (assign) IBOutlet NSLevelIndicator *accellX;
+@property (assign) IBOutlet NSLevelIndicator *accellY;
+@property (assign) IBOutlet NSLevelIndicator *accellZ;
 
 - (IBAction) doConnect:(id)sender;
 - (IBAction) doDisconnect:(id)sender;

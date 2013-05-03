@@ -20,90 +20,57 @@
 #pragma mark static globals
 
 enum Button {
-	kButtonsRelease = 0,
-	kTriangleButton = 16,
-	kCircleButton = 32,
-	kTriangleAndCircleButton = 48,
-	kCrossButton = 64,
-	kTriangleAndCrossButton = 80,
-	kCircleAndCrossButton = 96,
-	kTriangleAndCircleAndCrossButton = 112,
-	kSquareButton = 128,
-	kTriangleAndSquareButton = 144,
-	kCircleAndSquareButton = 160,
-	kTriangleAndSquareAndCircleButton = 176,
-	kCrossAndSquareButton = 192,
-	kCrossAndSquareAndTriangleButton = 208,
-	kCircleAndCrossAndSquareButton = 224,
-	kCircleAndCrossAndSquareAndTriangleButton = 240,
-	
-	
-	kL2 = 1,
-	kR2 = 2,
-	kL2R2 = 3,
-	kL1 = 4,
-	kL1L2 = 5,
-	kL1R2 = 6,
-	kL1L2R2 = 7,
-	kR1 = 8,
-	kR1L2 = 9,
-	kR1R2 = 10,
-	kR1R2L2 = 11,
-	kL1R1 = 12,
-	kL1L2R1 = 13,
-	kL1R1R2 = 14,
-	kL1L2R1R2 = 15
+    kL2 =               0x01,
+	kR2 =               0x02,
+	kL1 =               0x04,
+	kR1 =               0x08,
+	kTriangleButton =   0x10,
+	kCircleButton =     0x20,
+	kCrossButton =      0x40,
+	kSquareButton =     0x80
 } ButtonTags;
 
 enum DirectionButton {
-	kSelectButton = 1,
-	kStartButton = 8,
-	kSelectAndStartButton = 9,
-	kDirectionButtonsRelease = 0,
-	kLeftStickButton = 2,
-	kRightStickButton = 4,
-	kLeftAndRightStickButton = 6,
-	kNorthButton = 16,
-	kEastButton = 32,
-	kNorthEastButton = 48,
-	kSouthButton = 64,
-	kEastSouthButton = 96,
-	kWestButton = 128,
-	kWestNorthButton = 144,
-	kWestSouthButton = 192
+	kSelectButton =     0x01,
+    kLeftStickButton =  0x02,
+    kRightStickButton = 0x04,
+	kStartButton =      0x08,
+    kUpButton =         0x10,
+    kRightButton =      0x20,
+	kDownButton =       0x40,
+	kLeftButton =       0x80
 } DirectionButtonTags;
+
+#pragma mark -
+#pragma mark controller structures
+
+struct BUTTONS {
+    // Direction Pad
+    BOOL up;
+    BOOL down;
+    BOOL left;
+    BOOL right;
+    BOOL left_stick;
+    BOOL right_stick;
+    BOOL select;
+    BOOL start;
+    // Button Pad
+    BOOL left1;
+    BOOL right1;
+    BOOL left2;
+    BOOL right2;
+    BOOL triangle;
+    BOOL circle;
+    BOOL cross;
+    BOOL square;
+    // PS Button
+    BOOL ps;
+};
 
 #pragma mark -
 #pragma mark static functions
 
 @interface PS3SixAxis (Private)
-BOOL isConnected;
-
-BOOL isLeftStickDown, preIsLeftStickDown;
-BOOL isRightStickDown, preIsRightStickDown;
-BOOL isTriangleButtonDown, preIsTriangleButtonDown;
-BOOL isCircleButtonDown, preIsCircleButtonDown;
-BOOL isCrossButtonDown, preIsCrossButtonDown;
-BOOL isSquareButtonDown, preIsSquareButtonDown;
-BOOL isL1ButtonDown, preIsL1ButtonDown;
-BOOL isL2ButtonDown, preIsL2ButtonDown;
-BOOL isR1ButtonDown, preIsR1ButtonDown;
-BOOL isR2ButtonDown, preIsR2ButtonDown;
-
-BOOL isNorthButtonDown, preIsNorthButtonDown;
-BOOL isEastButtonDown, preIsEastButtonDown;
-BOOL isSouthButtonDown, preIsSouthButtonDown;
-BOOL isWestButtonDown, preIsWestButtonDown;
-
-BOOL isSelectButtonDown, preIsSelectButtonDown;
-BOOL isStartButtonDown, preIsStartButtonDown;
-BOOL isPSButtonDown, preIsPSButtonDown;
-
-int preLeftStickX, preLeftStickY;
-int preRightStickX, preRightStickY;
-
-unsigned int mx, my, mz;
-
 - (void) parse:(uint8_t*)data l:(CFIndex)length;
 - (void) parseUnBuffered:(uint8_t*)data l:(CFIndex)length;
 - (void) sendDeviceConnected;
@@ -112,6 +79,14 @@ unsigned int mx, my, mz;
 @end
 
 @implementation PS3SixAxis (Private)
+
+static BOOL isConnected;
+static struct BUTTONS buttons;
+
+static int preLeftStickX, preLeftStickY;
+static int preRightStickX, preRightStickY;
+
+static unsigned int mx, my, mz;
 
 // ask a IOHIDDevice for a feature report
 static IOReturn Get_DeviceFeatureReport(IOHIDDeviceRef inIOHIDDeviceRef, CFIndex inReportID, void* inReportBuffer, CFIndex* ioReportSize) {
@@ -245,312 +220,52 @@ static void Handle_RemovalCallback(void* inContext, IOReturn inResult, void* inS
 	//unsigned char ButtonState;
 	//memcpy( &ButtonState, &data[3], sizeof( unsigned char ) );
 	//printf("data[3] %u\n", data[3]);
-	switch (data[3]) {
-		case kButtonsRelease:
-			// release all Buttons
-			isTriangleButtonDown = NO;
-			isCircleButtonDown = NO;
-			isCrossButtonDown = NO;
-			isSquareButtonDown = NO;
-			isL1ButtonDown = NO;
-			isL2ButtonDown = NO;
-			isR1ButtonDown = NO;
-			isR2ButtonDown = NO;
-			break;
-		case kTriangleButton:
-			isTriangleButtonDown = YES;
-			isCircleButtonDown = NO;
-			isCrossButtonDown = NO;
-			isSquareButtonDown = NO;
-			break;
-		case kTriangleAndCircleButton:
-			isTriangleButtonDown = YES;
-			isCircleButtonDown = YES;
-			isCrossButtonDown = NO;
-			isSquareButtonDown = NO;
-			break;
-		case kTriangleAndCrossButton:
-			isTriangleButtonDown = YES;
-			isCircleButtonDown = NO;
-			isCrossButtonDown = YES;
-			isSquareButtonDown = NO;
-			break;
-		case kTriangleAndSquareButton:
-			isTriangleButtonDown = YES;
-			isCircleButtonDown = NO;
-			isCrossButtonDown = NO;
-			isSquareButtonDown = YES;
-			break;
-		case kCircleButton:
-			isTriangleButtonDown = NO;
-			isCircleButtonDown = YES;
-			isCrossButtonDown = NO;
-			isSquareButtonDown = NO;
-			break;
-		case kCircleAndCrossButton:
-			isTriangleButtonDown = NO;
-			isCircleButtonDown = YES;
-			isCrossButtonDown = YES;
-			isSquareButtonDown = NO;
-			break;
-		case kCircleAndSquareButton:
-			isTriangleButtonDown = NO;
-			isCircleButtonDown = YES;
-			isCrossButtonDown = NO;
-			isSquareButtonDown = YES;
-			break;
-		case kCrossButton:
-			isTriangleButtonDown = NO;
-			isCircleButtonDown = NO;
-			isCrossButtonDown = YES;
-			isSquareButtonDown = NO;
-			break;
-		case kCrossAndSquareButton:
-			isTriangleButtonDown = NO;
-			isCircleButtonDown = NO;
-			isCrossButtonDown = YES;
-			isSquareButtonDown = YES;
-			break;
-		case kSquareButton:
-			isTriangleButtonDown = NO;
-			isCircleButtonDown = NO;
-			isCrossButtonDown = NO;
-			isSquareButtonDown = YES;
-			break;
-		case kTriangleAndCircleAndCrossButton:
-			isTriangleButtonDown = YES;
-			isCircleButtonDown = YES;
-			isCrossButtonDown = YES;
-			isSquareButtonDown = NO;
-			break;
-		case kTriangleAndSquareAndCircleButton:
-			isTriangleButtonDown = YES;
-			isCircleButtonDown = YES;
-			isCrossButtonDown = NO;
-			isSquareButtonDown = YES;
-			break;
-		case kCrossAndSquareAndTriangleButton:
-			isTriangleButtonDown = YES;
-			isCircleButtonDown = NO;
-			isCrossButtonDown = YES;
-			isSquareButtonDown = YES;
-			break;
-		case kCircleAndCrossAndSquareButton:
-			isTriangleButtonDown = NO;
-			isCircleButtonDown = YES;
-			isCrossButtonDown = YES;
-			isSquareButtonDown = YES;
-			break;
-		case kCircleAndCrossAndSquareAndTriangleButton:
-			isTriangleButtonDown = YES;
-			isCircleButtonDown = YES;
-			isCrossButtonDown = YES;
-			isSquareButtonDown = YES;
-			break;
-		case kL1:
-			isL1ButtonDown = YES;
-			isL2ButtonDown = NO;
-			isR1ButtonDown = NO;
-			isR2ButtonDown = NO;
-			break;
-		case kL2:
-			isL1ButtonDown = NO;
-			isL2ButtonDown = YES;
-			isR1ButtonDown = NO;
-			isR2ButtonDown = NO;
-			break;
-		case kR1:
-			isL1ButtonDown = NO;
-			isL2ButtonDown = NO;
-			isR1ButtonDown = YES;
-			isR2ButtonDown = NO;
-			break;
-		case kR2:
-			isL1ButtonDown = NO;
-			isL2ButtonDown = NO;
-			isR1ButtonDown = NO;
-			isR2ButtonDown = YES;
-			break;
-		case kL2R2:
-			isL1ButtonDown = NO;
-			isL2ButtonDown = YES;
-			isR1ButtonDown = NO;
-			isR2ButtonDown = YES;
-			break;
-		case kL1L2:
-			isL1ButtonDown = YES;
-			isL2ButtonDown = YES;
-			isR1ButtonDown = NO;
-			isR2ButtonDown = NO;
-			break;
-		case kL1R2:
-			isL1ButtonDown = YES;
-			isL2ButtonDown = NO;
-			isR1ButtonDown = NO;
-			isR2ButtonDown = YES;
-			break;
-		case kL1L2R2:
-			isL1ButtonDown = YES;
-			isL2ButtonDown = YES;
-			isR1ButtonDown = NO;
-			isR2ButtonDown = YES;
-			break;
-		case kR1L2:
-			isL1ButtonDown = NO;
-			isL2ButtonDown = YES;
-			isR1ButtonDown = YES;
-			isR2ButtonDown = NO;
-			break;
-		case kR1R2:
-			isL1ButtonDown = NO;
-			isL2ButtonDown = NO;
-			isR1ButtonDown = YES;
-			isR2ButtonDown = YES;
-			break;
-		case kR1R2L2:
-			isL1ButtonDown = NO;
-			isL2ButtonDown = YES;
-			isR1ButtonDown = YES;
-			isR2ButtonDown = YES;
-			break;
-		case kL1R1:
-			isL1ButtonDown = YES;
-			isL2ButtonDown = NO;
-			isR1ButtonDown = YES;
-			isR2ButtonDown = NO;
-			break;
-		case kL1L2R1:
-			isL1ButtonDown = YES;
-			isL2ButtonDown = YES;
-			isR1ButtonDown = YES;
-			isR2ButtonDown = NO;
-			break;
-		case kL1R1R2:
-			isL1ButtonDown = YES;
-			isL2ButtonDown = NO;
-			isR1ButtonDown = YES;
-			isR2ButtonDown = YES;
-			break;
-		case kL1L2R1R2:
-			isL1ButtonDown = YES;
-			isL2ButtonDown = YES;
-			isR1ButtonDown = YES;
-			isR2ButtonDown = YES;
-			break;
-		default:
-			break;
-	}
+    
+    struct BUTTONS pre_buttons;
+    memcpy( &pre_buttons, &buttons, sizeof(struct BUTTONS ));
+    
+    buttons.triangle = ((data[3] & kTriangleButton) == kTriangleButton);
+    buttons.circle = ((data[3] & kCircleButton) == kCircleButton);
+    buttons.cross = ((data[3] & kCrossButton) == kCrossButton);
+    buttons.square = ((data[3] & kSquareButton) == kSquareButton);
+    buttons.left1 = ((data[3] & kL1) == kL1);
+    buttons.left2 = ((data[3] & kL2) == kL2);
+    buttons.right1 = ((data[3] & kR1) == kR1);
+    buttons.right2 = ((data[3] & kR2) == kR2);
+    
 #pragma mark DirectionButtons
 	//unsigned char DirectionButtonState;
 	//memcpy( &DirectionButtonState, &data[2], sizeof( unsigned char ) );
 	//printf( "DirectionButtonState: %u\n", data[2] );
-	switch (data[2]) {
-		case kDirectionButtonsRelease:
-			// release all Buttons
-			isNorthButtonDown = NO;
-			isEastButtonDown = NO;
-			isSouthButtonDown = NO;
-			isWestButtonDown = NO;
-			isLeftStickDown = NO;
-			isRightStickDown = NO;
-			isSelectButtonDown = NO;
-			isStartButtonDown = NO;
-			break;
-		case kNorthButton:
-			isNorthButtonDown = YES;
-			isEastButtonDown = NO;
-			isSouthButtonDown = NO;
-			isWestButtonDown = NO;
-			break;
-		case kEastButton:
-			isNorthButtonDown = NO;
-			isEastButtonDown = YES;
-			isSouthButtonDown = NO;
-			isWestButtonDown = NO;
-			break;
-		case kSouthButton:
-			isNorthButtonDown = NO;
-			isEastButtonDown = NO;
-			isSouthButtonDown = YES;
-			isWestButtonDown = NO;
-			break;
-		case kWestButton:
-			isNorthButtonDown = NO;
-			isEastButtonDown = NO;
-			isSouthButtonDown = NO;
-			isWestButtonDown = YES;
-			break;
-		case kNorthEastButton:
-			isNorthButtonDown = YES;
-			isEastButtonDown = YES;
-			isSouthButtonDown = NO;
-			isWestButtonDown = NO;
-			break;
-		case kEastSouthButton:
-			isNorthButtonDown = NO;
-			isEastButtonDown = YES;
-			isSouthButtonDown = YES;
-			isWestButtonDown = NO;
-			break;
-		case kWestNorthButton:
-			isNorthButtonDown = YES;
-			isEastButtonDown = NO;
-			isSouthButtonDown = NO;
-			isWestButtonDown = YES;
-			break;
-		case kWestSouthButton:
-			isNorthButtonDown = NO;
-			isEastButtonDown = NO;
-			isSouthButtonDown = YES;
-			isWestButtonDown = YES;			
-			break;
-		case kLeftStickButton:
-			isLeftStickDown = YES;
-			break;
-		case kRightStickButton:
-			isRightStickDown = YES;
-			break;
-		case kLeftAndRightStickButton:
-			isLeftStickDown = YES;
-			isRightStickDown = YES;
-			break;
-		case kSelectButton:
-			isSelectButtonDown = YES;
-			break;
-		case kStartButton:
-			isStartButtonDown = YES;
-			break;
-		case kSelectAndStartButton:
-			isSelectButtonDown = YES;
-			isStartButtonDown = YES;
-			break;
-		default:
-			break;
-	}
+    buttons.up = ((data[2] & kUpButton) == kUpButton);
+    buttons.right = ((data[2] & kRightButton) == kRightButton);
+    buttons.down = ((data[2] & kDownButton) == kDownButton);
+    buttons.left = ((data[2] & kLeftButton) == kLeftButton);
+    buttons.left_stick = ((data[2] & kLeftStickButton) == kLeftStickButton);
+    buttons.right_stick = ((data[2] & kRightStickButton) == kRightStickButton);
+    buttons.select = ((data[2] & kSelectButton) == kSelectButton);
+    buttons.start = ((data[2] & kStartButton) == kStartButton);
 	
 #pragma mark select and start button
-	if (isSelectButtonDown != preIsSelectButtonDown) {
+	if (buttons.select != pre_buttons.select) {
 		if ([delegate respondsToSelector:@selector(onSelectButton:)]) {
-			[delegate onSelectButton:isSelectButtonDown];
+			[delegate onSelectButton:buttons.select];
 		}
-		preIsSelectButtonDown = isSelectButtonDown;
 	}
-	if (isStartButtonDown != preIsStartButtonDown) {
+	if (buttons.start != pre_buttons.start) {
 		if ([delegate respondsToSelector:@selector(onStartButton:)]) {
-			[delegate onStartButton:isStartButtonDown];
+			[delegate onStartButton:buttons.start];
 		}
-		preIsStartButtonDown = isStartButtonDown;
 	}
 	
 #pragma mark PSButton
 	//unsigned char PSButtonState;
 	//memcpy( &PSButtonState, &data[4], sizeof( unsigned char ) );
-	BOOL psb = (BOOL)data[4];
-	if (psb != preIsPSButtonDown) {
+	buttons.ps = (BOOL)data[4];
+	if (buttons.ps != pre_buttons.ps) {
 		if ([delegate respondsToSelector:@selector(onPSButton:)]) {
-			[delegate onPSButton:psb];
+			[delegate onPSButton:buttons.ps];
 		}
-		preIsPSButtonDown = psb;
 	}
 	
 #pragma mark LeftStick
@@ -575,7 +290,7 @@ static void Handle_RemovalCallback(void* inContext, IOReturn inResult, void* inS
 		 */
 		//printf( "LeftStick: %d, %d\n", (int)LeftStickX, (int)LeftStickY );
 		if ([delegate respondsToSelector:@selector(onLeftStick:pressed:)]) {
-			[delegate onLeftStick:NSMakePoint((float)data[6], (float)data[7]) pressed:isLeftStickDown];
+			[delegate onLeftStick:NSMakePoint((float)data[6], (float)data[7]) pressed:buttons.left_stick];
 		}
 		preLeftStickX = leftStickX;
 		preLeftStickY = leftStickY;
@@ -603,7 +318,7 @@ static void Handle_RemovalCallback(void* inContext, IOReturn inResult, void* inS
 		 */
 		//printf( "RightStick: %d, %d\n", (int)RightStickX, (int)RightStickY );
 		if ([delegate respondsToSelector:@selector(onRightStick:pressed:)]) {
-			[delegate onRightStick:NSMakePoint((float)data[8], (float)data[9]) pressed:isRightStickDown];
+			[delegate onRightStick:NSMakePoint((float)data[8], (float)data[9]) pressed:buttons.right_stick];
 		}
 		preRightStickX = rsx;
 		preRightStickY = rsy;
@@ -611,17 +326,16 @@ static void Handle_RemovalCallback(void* inContext, IOReturn inResult, void* inS
 	
 #pragma mark Buttons
 	// digital Pad Triangle button Trigger
-	if(isTriangleButtonDown != preIsTriangleButtonDown) {
-		if (!isTriangleButtonDown && [delegate respondsToSelector:@selector(onTriangleButtonWithPressure:)]) {
+	if(buttons.triangle != pre_buttons.triangle) {
+		if (!buttons.triangle && [delegate respondsToSelector:@selector(onTriangleButtonWithPressure:)]) {
 			[delegate onTriangleButtonWithPressure:0];
 		}
 		if ([delegate respondsToSelector:@selector(onTriangleButton:)]) {
-			[delegate onTriangleButton:isTriangleButtonDown];
+			[delegate onTriangleButton:buttons.triangle];
 		}
-		preIsTriangleButtonDown = isTriangleButtonDown;
 	}
 	// digital Pad Triangle button Pressure 0 - 255
-	if(isTriangleButtonDown) {
+	if(buttons.triangle) {
 		if ([delegate respondsToSelector:@selector(onTriangleButtonWithPressure:)]) {
 			//unsigned char PressureTriangle;
 			//memcpy( &PressureTriangle, &data[22], sizeof( unsigned char ) );
@@ -629,17 +343,16 @@ static void Handle_RemovalCallback(void* inContext, IOReturn inResult, void* inS
 		}
 	}
 	// digital Pad Circle button Trigger
-	if(isCircleButtonDown != preIsCircleButtonDown) {
-		if (!isCircleButtonDown && [delegate respondsToSelector:@selector(onCircleButtonWithPressure:)]) {
+	if(buttons.circle != pre_buttons.circle) {
+		if (!buttons.circle && [delegate respondsToSelector:@selector(onCircleButtonWithPressure:)]) {
 			[delegate onCircleButtonWithPressure:0];
 		}
 		if ([delegate respondsToSelector:@selector(onCircleButton:)]) {
-			[delegate onCircleButton:isCircleButtonDown];
+			[delegate onCircleButton:buttons.circle];
 		}
-		preIsCircleButtonDown = isCircleButtonDown;
 	}
 	// digital Pad Circle button Pressure 0 - 255
-	if(isCircleButtonDown) {
+	if(buttons.circle) {
 		if ([delegate respondsToSelector:@selector(onCircleButtonWithPressure:)]) {
 			//unsigned char PressureCircle;
 			//memcpy( &PressureCircle, &data[23], sizeof( unsigned char ) );
@@ -649,17 +362,16 @@ static void Handle_RemovalCallback(void* inContext, IOReturn inResult, void* inS
 	
 	// Cross Button
 	// digital Pad Cross button Trigger
-	if(isCrossButtonDown != preIsCrossButtonDown) {
-		if (!isCrossButtonDown && [delegate respondsToSelector:@selector(onCrossButtonWithPressure:)]) {
+	if(buttons.cross != pre_buttons.cross) {
+		if (!buttons.cross && [delegate respondsToSelector:@selector(onCrossButtonWithPressure:)]) {
 			[delegate onCrossButtonWithPressure:0];
 		}		
 		if ([delegate respondsToSelector:@selector(onCrossButton:)]) {
-			[delegate onCrossButton:isCrossButtonDown];
+			[delegate onCrossButton:buttons.cross];
 		}
-		preIsCrossButtonDown = isCrossButtonDown;
 	}
 	// digital Pad Cross button Pressure 0 - 255	
-	if(isCrossButtonDown) {
+	if(buttons.cross) {
 		if ([delegate respondsToSelector:@selector(onCrossButtonWithPressure:)]) {
 			//unsigned char PressureCross;
 			//memcpy( &PressureCross, &data[24], sizeof( unsigned char ) );
@@ -669,17 +381,16 @@ static void Handle_RemovalCallback(void* inContext, IOReturn inResult, void* inS
 	
 	// Square Button
 	// digital Pad Square button Trigger
-	if(isSquareButtonDown != preIsSquareButtonDown) {
-		if (!isSquareButtonDown && [delegate respondsToSelector:@selector(onSquareButtonWithPressure:)]) {
+	if(buttons.square != pre_buttons.square) {
+		if (!buttons.square && [delegate respondsToSelector:@selector(onSquareButtonWithPressure:)]) {
 			[delegate onSquareButtonWithPressure:0];
 		}
 		if ([delegate respondsToSelector:@selector(onSquareButton:)]) {
-			[delegate onSquareButton:isSquareButtonDown];
+			[delegate onSquareButton:buttons.square];
 		}
-		preIsSquareButtonDown = isSquareButtonDown;
 	}
 	// digital Pad Square button Pressure 0 - 255
-	if(isSquareButtonDown) {
+	if(buttons.square) {
 		if ([delegate respondsToSelector:@selector(onSquareButtonWithPressure:)]) {
 			//unsigned char PressureSquare;
 			//memcpy( &PressureSquare, &data[25], sizeof( unsigned char ) );
@@ -689,17 +400,16 @@ static void Handle_RemovalCallback(void* inContext, IOReturn inResult, void* inS
 	
 	// L2 Button
 	// digital Pad L2 button Trigger
-	if(isL2ButtonDown != preIsL2ButtonDown) {
-		if (!isL2ButtonDown && [delegate respondsToSelector:@selector(onL2ButtonWithPressure:)]) {
+	if(buttons.left2 != pre_buttons.left2) {
+		if (!buttons.left2 && [delegate respondsToSelector:@selector(onL2ButtonWithPressure:)]) {
 			[delegate onL2ButtonWithPressure:0];
 		}
 		if ([delegate respondsToSelector:@selector(onL2Button:)]) {
-			[delegate onL2Button:isL2ButtonDown];
+			[delegate onL2Button:buttons.left2];
 		}
-		preIsL2ButtonDown = isL2ButtonDown;
 	}
 	// digital Pad L2 button Pressure 0 - 255
-	if(isL2ButtonDown) {
+	if(buttons.left2) {
 		if ([delegate respondsToSelector:@selector(onL2ButtonWithPressure:)]) {
 			//unsigned char PressureL2;
 			//memcpy( &PressureL2, &data[18], sizeof( unsigned char ) );
@@ -709,17 +419,16 @@ static void Handle_RemovalCallback(void* inContext, IOReturn inResult, void* inS
 	
 	// R2 Button
 	// digital Pad R2 button Trigger
-	if(isR2ButtonDown != preIsR2ButtonDown) {
-		if (!isR2ButtonDown && [delegate respondsToSelector:@selector(onR2ButtonWithPressure:)]) {
+	if(buttons.right2 != pre_buttons.right2) {
+		if (!buttons.right2 && [delegate respondsToSelector:@selector(onR2ButtonWithPressure:)]) {
 			[delegate onR2ButtonWithPressure:0];
 		}
 		if ([delegate respondsToSelector:@selector(onR2Button:)]) {
-			[delegate onR2Button:isR2ButtonDown];
+			[delegate onR2Button:buttons.right2];
 		}
-		preIsR2ButtonDown = isR2ButtonDown;
 	}
 	// digital Pad R2 button Pressure 0 - 255
-	if(isR2ButtonDown) {
+	if(buttons.right2) {
 		if ([delegate respondsToSelector:@selector(onR2ButtonWithPressure:)]) {
 			//unsigned char PressureR2;
 			//memcpy( &PressureR2, &data[19], sizeof( unsigned char ) );
@@ -729,17 +438,16 @@ static void Handle_RemovalCallback(void* inContext, IOReturn inResult, void* inS
 	
 	// L1 Button
 	// digital Pad L1 button Trigger
-	if(isL1ButtonDown != preIsL1ButtonDown) {
-		if (!isL1ButtonDown && [delegate respondsToSelector:@selector(onL1ButtonWithPressure:)]) {
+	if(buttons.left1 != pre_buttons.left1) {
+		if (!buttons.left1 && [delegate respondsToSelector:@selector(onL1ButtonWithPressure:)]) {
 			[delegate onL1ButtonWithPressure:0];
 		}
 		if ([delegate respondsToSelector:@selector(onL1Button:)]) {
-			[delegate onL1Button:isL1ButtonDown];
+			[delegate onL1Button:buttons.left1];
 		}
-		preIsL1ButtonDown = isL1ButtonDown;
 	}
 	// digital Pad L1 button Pressure 0 - 255
-	if(isL1ButtonDown) {
+	if(buttons.left1) {
 		if ([delegate respondsToSelector:@selector(onL1ButtonWithPressure:)]) {
 			//unsigned char PressureL1;
 			//memcpy( &PressureL1, &data[20], sizeof( unsigned char ) );
@@ -749,17 +457,16 @@ static void Handle_RemovalCallback(void* inContext, IOReturn inResult, void* inS
 	
 	// R1 Button
 	// digital Pad R1 button Trigger
-	if(isR1ButtonDown != preIsR1ButtonDown) {
-		if (!isR1ButtonDown && [delegate respondsToSelector:@selector(onR1ButtonWithPressure:)]) {
+	if(buttons.right1 != pre_buttons.right1) {
+		if (!buttons.right1 && [delegate respondsToSelector:@selector(onR1ButtonWithPressure:)]) {
 			[delegate onR1ButtonWithPressure:0];
 		}
 		if ([delegate respondsToSelector:@selector(onR1Button:)]) {
-			[delegate onR1Button:isR1ButtonDown];
+			[delegate onR1Button:buttons.right1];
 		}
-		preIsR1ButtonDown = isR1ButtonDown;
 	}
 	// digital Pad R1 button Pressure 0 - 255
-	if(isR1ButtonDown) {
+	if(buttons.right1) {
 		if ([delegate respondsToSelector:@selector(onR1ButtonWithPressure:)]) {
 			//unsigned char PressureR1;
 			//memcpy( &PressureR1, &data[21], sizeof( unsigned char ) );
@@ -769,17 +476,16 @@ static void Handle_RemovalCallback(void* inContext, IOReturn inResult, void* inS
 	
 	// North Button
 	// Cross North button Trigger
-	if(isNorthButtonDown != preIsNorthButtonDown) {
-		if (!isNorthButtonDown && [delegate respondsToSelector:@selector(onNorthButtonWithPressure:)]) {
+	if(buttons.up != pre_buttons.up) {
+		if (!buttons.up && [delegate respondsToSelector:@selector(onNorthButtonWithPressure:)]) {
 			[delegate onNorthButtonWithPressure:0];
 		}
 		if ([delegate respondsToSelector:@selector(onNorthButton:)]) {
-			[delegate onNorthButton:isNorthButtonDown];
+			[delegate onNorthButton:buttons.up];
 		}
-		preIsNorthButtonDown = isNorthButtonDown;
 	}
 	// Cross North button Pressure 0 - 255
-	if(isNorthButtonDown) {
+	if(buttons.up) {
 		if ([delegate respondsToSelector:@selector(onNorthButtonWithPressure:)]) {
 			//unsigned char PressureNorth;
 			//memcpy( &PressureNorth, &data[14], sizeof( unsigned char ) );
@@ -789,17 +495,16 @@ static void Handle_RemovalCallback(void* inContext, IOReturn inResult, void* inS
 	
 	// East Button
 	// Cross East button Trigger
-	if(isEastButtonDown != preIsEastButtonDown) {
-		if (!isEastButtonDown && [delegate respondsToSelector:@selector(onEastButtonWithPressure:)]) {
+	if(buttons.right != pre_buttons.right) {
+		if (!buttons.right && [delegate respondsToSelector:@selector(onEastButtonWithPressure:)]) {
 			[delegate onEastButtonWithPressure:0];
 		}
 		if ([delegate respondsToSelector:@selector(onEastButton:)]) {
-			[delegate onEastButton:isEastButtonDown];
+			[delegate onEastButton:buttons.right];
 		}
-		preIsEastButtonDown = isEastButtonDown;
 	}
 	// Cross East button Pressure 0 - 255
-	if(isEastButtonDown) {
+	if(buttons.right) {
 		if ([delegate respondsToSelector:@selector(onEastButtonWithPressure:)]) {
 			//unsigned char PressureEast;
 			//memcpy( &PressureEast, &data[15], sizeof( unsigned char ) );
@@ -809,17 +514,16 @@ static void Handle_RemovalCallback(void* inContext, IOReturn inResult, void* inS
 	
 	// South Button
 	// Cross South button Trigger
-	if(isSouthButtonDown != preIsSouthButtonDown) {
-		if (!isSouthButtonDown && [delegate respondsToSelector:@selector(onSouthButtonWithPressure:)]) {
+	if(buttons.down != pre_buttons.down) {
+		if (!buttons.down && [delegate respondsToSelector:@selector(onSouthButtonWithPressure:)]) {
 			[delegate onSouthButtonWithPressure:0];
 		}
 		if ([delegate respondsToSelector:@selector(onSouthButton:)]) {
-			[delegate onSouthButton:isSouthButtonDown];
+			[delegate onSouthButton:buttons.down];
 		}
-		preIsSouthButtonDown = isSouthButtonDown;
 	}
 	// Cross South button Pressure 0 - 255
-	if(isSouthButtonDown) {
+	if(buttons.down) {
 		if ([delegate respondsToSelector:@selector(onSouthButtonWithPressure:)]) {
 			//unsigned char PressureSouth;
 			//memcpy( &PressureSouth, &data[16], sizeof( unsigned char ) );
@@ -829,17 +533,16 @@ static void Handle_RemovalCallback(void* inContext, IOReturn inResult, void* inS
 	
 	// West Button
 	// Cross West button Trigger
-	if(isWestButtonDown != preIsWestButtonDown) {
-		if (!isWestButtonDown && [delegate respondsToSelector:@selector(onWestButtonWithPressure:)]) {
+	if(buttons.left != pre_buttons.left) {
+		if (!buttons.left && [delegate respondsToSelector:@selector(onWestButtonWithPressure:)]) {
 			[delegate onWestButtonWithPressure:0];
 		}
 		if ([delegate respondsToSelector:@selector(onWestButton:)]) {
-			[delegate onWestButton:isWestButtonDown];
+			[delegate onWestButton:buttons.left];
 		}
-		preIsWestButtonDown = isWestButtonDown;
 	}
 	// Cross West button Pressure 0 - 255
-	if(isWestButtonDown) {
+	if(buttons.left) {
 		if ([delegate respondsToSelector:@selector(onWestButtonWithPressure:)]) {
 			//unsigned char PressureWest;
 			//memcpy( &PressureWest, &data[17], sizeof( unsigned char ) );
@@ -848,9 +551,16 @@ static void Handle_RemovalCallback(void* inContext, IOReturn inResult, void* inS
 	}
 
 	// Accelerometers
-	mx = data[40] | (data[41] << 8);
-	my = data[42] | (data[43] << 8);
-	mz = data[44] | (data[45] << 8);
+    if (length == 48) {
+        mx = (data[40] << 8) | data[41];
+        my = (data[42] << 8) | data[43];
+        mz = (data[44] << 8) | data[45];
+    }else { // == 49
+        mx = (data[41] << 8) | data[42];
+        my = (data[43] << 8) | data[44];
+        mz = (data[45] << 8) | data[46];
+    }
+	
 
 	if ([delegate respondsToSelector:@selector(onAxisX:Y:Z:)]) {
 		[delegate onAxisX:mx Y:my Z:mz];

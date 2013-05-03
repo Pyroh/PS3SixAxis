@@ -3,6 +3,20 @@
 #include <stdio.h>
 #include <arpa/inet.h> /* for htons */
 
+int assemble_input_01(uint8_t *buf, int maxlen, struct sixaxis_state *state);
+int process_input_01(const uint8_t *buf, int len, struct sixaxis_state *state);
+
+int assemble_feature_01(uint8_t *buf, int maxlen, struct sixaxis_state *state);
+int assemble_feature_ef(uint8_t *buf, int maxlen, struct sixaxis_state *state);
+int assemble_feature_f2(uint8_t *buf, int maxlen, struct sixaxis_state *state);
+int assemble_feature_f8(uint8_t *buf, int maxlen, struct sixaxis_state *state);
+
+int process_output_01(const uint8_t *buf, int len, struct sixaxis_state *state);
+
+int process_feature_ef(const uint8_t *buf, int len, struct sixaxis_state *state);
+int process_feature_f4(const uint8_t *buf, int len, struct sixaxis_state *state);
+
+
 static int clamp(int min, int val, int max)
 {
 	if (val < min) return min;
