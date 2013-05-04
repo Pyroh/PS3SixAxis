@@ -15,15 +15,14 @@
 	if(self = [super initWithFrame:frameRect]) {
 		[self setWantsLayer:YES];
 		
-		CGColorRef blackColor = CGColorCreateGenericRGB(0.0, 0.0, 0.0, 0.7);
-		CGColorRef whiteColor = CGColorCreateGenericRGB(1.0, 1.0, 1.0, 1.0);
+		CGColorRef backColor = CGColorCreateGenericRGB(1.00f, 1.00f, 1.00f, 0.00f);
 		
 		point = [CALayer layer];
+        [point setBounds:CGRectMake(0, 0, 40, 40)];
 		[point setAnchorPoint:CGPointMake(0, 0)];
-		[point setBounds:CGRectMake(0, 0, 20, 20)];
 		[point setShadowOpacity:.8f];
-		[point setCornerRadius:10];
-		[[self layer] setBackgroundColor:blackColor];
+		[point setCornerRadius:20];
+		[[self layer] setBackgroundColor:backColor];
 		[[self layer] addSublayer:point];
 		
 		[self setJoyStickX:128 Y:128 pressed:NO];
@@ -36,12 +35,12 @@
 	float scale = size.width / (255 + 20);
 	CGColorRef pointColor;
 	if (isPressed) {
-		pointColor = CGColorCreateGenericRGB(1.0, 0.0, 0.0, 1.0);
+		pointColor = CGColorCreateGenericRGB(1.00f, 0.00f, 0.00f, 1.00f);
 	} else {
-		pointColor = CGColorCreateGenericRGB(0.0, 0.0, 1.0, 1.0);
+		pointColor = CGColorCreateGenericRGB(0.25f, 0.25f, 0.25f, 1.00f);
 	}
 	[point setBackgroundColor:pointColor];
-	[point setPosition:CGPointMake(x * scale - 10, size.height - (y * scale) - 10)];
+	[point setPosition:CGPointMake(x * scale - 20, size.height - (y * scale) - 20)];
 }
 
 @end

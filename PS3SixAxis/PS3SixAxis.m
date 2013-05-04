@@ -294,7 +294,11 @@ static void Handle_RemovalCallback(void* inContext, IOReturn inResult, void* inS
 		}
 		preLeftStickX = leftStickX;
 		preLeftStickY = leftStickY;
-	}
+	}else if (buttons.left_stick != pre_buttons.left_stick) {
+        if ([delegate respondsToSelector:@selector(onLeftStick:pressed:)]) {
+			[delegate onLeftStick:NSMakePoint((float)data[6], (float)data[7]) pressed:buttons.left_stick];
+		}
+    }
 	
 #pragma mark RightStick
 	/*
@@ -322,7 +326,11 @@ static void Handle_RemovalCallback(void* inContext, IOReturn inResult, void* inS
 		}
 		preRightStickX = rsx;
 		preRightStickY = rsy;
-	}
+	}else if (buttons.right_stick != pre_buttons.right_stick) {
+        if ([delegate respondsToSelector:@selector(onRightStick:pressed:)]) {
+			[delegate onRightStick:NSMakePoint((float)data[8], (float)data[9]) pressed:buttons.right_stick];
+		}
+    }
 	
 #pragma mark Buttons
 	// digital Pad Triangle button Trigger
