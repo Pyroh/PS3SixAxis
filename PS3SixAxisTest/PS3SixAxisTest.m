@@ -191,6 +191,10 @@
 }
 
 
+- (BOOL) applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)theApplication {
+    return YES;
+}
+
 -(void)applicationWillTerminate:(NSNotification *)aNotification {
 	[ps3SixAxis disconnect];
 }
