@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4ECB868F17351B0400B6FB62 /* SixAxis.icns in Resources */ = {isa = PBXBuildFile; fileRef = 4ECB868E17351B0400B6FB62 /* SixAxis.icns */; };
 		F6B158F011936FF50019E239 /* sixaxis.c in Sources */ = {isa = PBXBuildFile; fileRef = F6B158EE11936FF50019E239 /* sixaxis.c */; };
 		F6B158F111936FF50019E239 /* sixaxis.h in Headers */ = {isa = PBXBuildFile; fileRef = F6B158EF11936FF50019E239 /* sixaxis.h */; };
 		F6B15B02119415810019E239 /* ledGreen.png in Resources */ = {isa = PBXBuildFile; fileRef = F6B15B00119415810019E239 /* ledGreen.png */; };
@@ -43,6 +44,7 @@
 		13E42FB307B3F0F600E4EEF1 /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = /System/Library/Frameworks/CoreData.framework; sourceTree = "<absolute>"; };
 		29B97324FDCFA39411CA2CEA /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = /System/Library/Frameworks/AppKit.framework; sourceTree = "<absolute>"; };
 		29B97325FDCFA39411CA2CEA /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = /System/Library/Frameworks/Foundation.framework; sourceTree = "<absolute>"; };
+		4ECB868E17351B0400B6FB62 /* SixAxis.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; name = SixAxis.icns; path = PS3SixAxisTest/SixAxis.icns; sourceTree = "<group>"; };
 		970F237E0EFC6DAB006C6E69 /* IOBluetooth.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOBluetooth.framework; path = /System/Library/Frameworks/IOBluetooth.framework; sourceTree = "<absolute>"; };
 		97D614F90D4BBB870065F48D /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = /System/Library/Frameworks/IOKit.framework; sourceTree = "<absolute>"; };
 		F6B158EE11936FF50019E239 /* sixaxis.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = sixaxis.c; path = PS3SixAxis/sixaxis.c; sourceTree = "<group>"; };
@@ -135,6 +137,7 @@
 		29B97317FDCFA39411CA2CEA /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				4ECB868E17351B0400B6FB62 /* SixAxis.icns */,
 				F6B15B2611941D090019E239 /* logo.png */,
 				F6B15B00119415810019E239 /* ledGreen.png */,
 				F6B15B01119415810019E239 /* ledRed.png */,
@@ -257,6 +260,7 @@
 				F6B15B02119415810019E239 /* ledGreen.png in Resources */,
 				F6B15B03119415810019E239 /* ledRed.png in Resources */,
 				F6B15B2711941D090019E239 /* logo.png in Resources */,
+				4ECB868F17351B0400B6FB62 /* SixAxis.icns in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
