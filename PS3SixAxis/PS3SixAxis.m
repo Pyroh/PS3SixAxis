@@ -9,14 +9,6 @@
 #import "PS3SixAxis.h"
 
 #pragma mark -
-#pragma mark conditional macro's
-
-#define DO_BLUETOOTH 1
-//#define DO_SET_MASTER (DO_BLUETOOTH && 1)
-
-//#define TRACE 1
-
-#pragma mark -
 #pragma mark static globals
 
 enum Button {
@@ -40,6 +32,7 @@ enum DirectionButton {
 	kDownButton =       0x40,
 	kLeftButton =       0x80
 } DirectionButtonTags;
+
 
 #pragma mark -
 #pragma mark controller structures
@@ -80,37 +73,12 @@ struct BUTTONS {
 
 @implementation PS3SixAxis (Private)
 
-static BOOL isConnected;
 static struct BUTTONS buttons;
 
 static int preLeftStickX, preLeftStickY;
 static int preRightStickX, preRightStickY;
 
 static unsigned int mx, my, mz;
-
-// ask a IOHIDDevice for a feature report
-static IOReturn Get_DeviceFeatureReport(IOHIDDeviceRef inIOHIDDeviceRef, CFIndex inReportID, void* inReportBuffer, CFIndex* ioReportSize) {
-	IOReturn result = paramErr;
-	if (inIOHIDDeviceRef && ioReportSize && inReportBuffer) {
-		result = IOHIDDeviceGetReport(inIOHIDDeviceRef, kIOHIDReportTypeFeature, inReportID, inReportBuffer, ioReportSize);
-		if (noErr != result) {
-			printf("%s, IOHIDDeviceGetReport error: %ld (0x%08lX ).\n", __PRETTY_FUNCTION__, (long int) result, (long int) result);
-		}
-	}
-	return result;
-}
-
-// send a IOHIDDevice a feature report
-static IOReturn Set_DeviceFeatureReport(IOHIDDeviceRef inIOHIDDeviceRef, CFIndex inReportID, void* inReportBuffer, CFIndex inReportSize) {
-	IOReturn result = paramErr;
-	if (inIOHIDDeviceRef && inReportSize && inReportBuffer) {
-		result = IOHIDDeviceSetReport(inIOHIDDeviceRef, kIOHIDReportTypeFeature, inReportID, inReportBuffer, inReportSize);
-		if (noErr != result) {
-			printf("%s, IOHIDDeviceSetReport error: %ld (0x%08lX ).\n", __PRETTY_FUNCTION__, (long int) result, (long int) result);
-		}
-	}
-	return result;
-}
 
 // ask a PS3 IOHIDDevice for the bluetooth address of its master
 static IOReturn PS3_GetMasterBluetoothAddress(IOHIDDeviceRef inIOHIDDeviceRef, BluetoothDeviceAddress *ioBluetoothDeviceAddress) {
@@ -132,11 +100,13 @@ static IOReturn PS3_GetMasterBluetoothAddress(IOHIDDeviceRef inIOHIDDeviceRef, B
 // this will be called when an input report is received
 static void Handle_IOHIDDeviceIOHIDReportCallback(void* inContext, IOReturn inResult, void* inSender, IOHIDReportType inType, uint32_t inReportID, uint8_t* inReport, CFIndex inReportLength) {
 	PS3SixAxis *context = (PS3SixAxis*)inContext;
-	if(context->useBuffered) {
-		[context parse:inReport l:inReportLength];
-	} else {
-		[context parseUnBuffered:inReport l:inReportLength];
-	}
+    if (context->isConnected) {
+        if(context->useBuffered) {
+            [context parse:inReport l:inReportLength];
+        } else {
+            [context parseUnBuffered:inReport l:inReportLength];
+        }
+    }
 }
 
 static Boolean IOHIDDevice_GetLongProperty_( IOHIDDeviceRef inIOHIDDeviceRef, CFStringRef inKey, long * outValue ) {
@@ -171,12 +141,12 @@ static void Handle_DeviceMatchingCallback(void* inContext, IOReturn inResult, vo
 	if ((0x054C != vendorID) || (0x0268 != productID)) {
 		return;
 	}
+    
 	context->hidDeviceRef = inIOHIDDeviceRef;
-	
+    
 	CFIndex reportSize = 64;
 	uint8_t *report = malloc(reportSize);
 	IOHIDDeviceRegisterInputReportCallback(inIOHIDDeviceRef, report, reportSize, Handle_IOHIDDeviceIOHIDReportCallback, inContext);
-	
 	[context sendDeviceConnected];
 }
 
@@ -607,15 +577,6 @@ static void Handle_RemovalCallback(void* inContext, IOReturn inResult, void* inS
 		return;
 	}
 	
-	int error = 0;
-
-	if (enableBluetooth && error != 0) {
-		if ([delegate respondsToSelector:@selector(onDeviceConnectionError:)]) {
-			[delegate onDeviceConnectionError:error];
-		}
-		return;
-	}
-	
 	hidManagerRef = IOHIDManagerCreate(kCFAllocatorDefault, kIOHIDOptionsTypeNone);
 	if (hidManagerRef) {
 		IOHIDManagerSetDeviceMatching(hidManagerRef, NULL);
@@ -629,7 +590,6 @@ static void Handle_RemovalCallback(void* inContext, IOReturn inResult, void* inS
 			if ([delegate respondsToSelector:@selector(onDeviceConnectionError:)]) {
 				[delegate onDeviceConnectionError:(long int)ioReturn];
 			}
-			//fprintf(stderr, "%s, IOHIDDeviceOpen error: %ld (0x%08lX ).\n", __PRETTY_FUNCTION__, (long int) ioReturn, (long int) ioReturn);
 		}
 	} else {
 		if ([delegate respondsToSelector:@selector(onDeviceConnectionError:)]) {
@@ -637,6 +597,40 @@ static void Handle_RemovalCallback(void* inContext, IOReturn inResult, void* inS
 		}
 	}
 	
+}
+
+- (BOOL)setParams:(SixAxisParams)params; {
+    if (hidDeviceRef && isConnected) {
+		uint8_t data[] = {  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                            0x00, 0x02, 0xFF, 0x27, 0x10, 0x10, 0x32, 0xFF,
+                            0x27, 0x10, 0x00, 0x32, 0xFF, 0x27, 0x10, 0x00,
+                            0x32, 0xFF, 0x27, 0x10, 0x00, 0x32, 0x00, 0x00,
+                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+        
+        
+        // LED settings
+        data[9] = (params & 0x0F) << 1;
+        // Rumble settings
+        if(params & 0x30){
+            data[1] = data[3] = 0xFE;
+            if(params & 0x10){	//High rumble
+                data[4] = 0xFF;
+            }else{	//Low rumble
+                data[2] = 0xFF;
+            }
+        }
+        
+        // Uses Endpoint 2 (with interruption) instead of 0 (the control one), need to fix it
+        IOReturn result = IOHIDDeviceSetReport(hidDeviceRef, kIOHIDReportTypeOutput, 0x00, data, sizeof(data));
+		if (result != kIOReturnSuccess) {
+			printf("%s, IOHIDDeviceSetReport error: %ld (0x%08lX ).\n", __PRETTY_FUNCTION__, (long int) result, (long int) result);
+		}
+        // use kIOHIDReportOptionNotInterrupt = 0x100 ???
+        
+        return YES;
+	}
+    return NO;
 }
 
 - (void)disconnect {

@@ -10,6 +10,16 @@
 #import <IOKit/hid/IOHIDLib.h>
 #import <IOBluetooth/objc/IOBluetoothHostController.h>
 
+typedef enum : uint8_t {
+	kLed1 =     0x01,
+    kLed2 =     0x02,
+    kLed3 =     0x04,
+	kLed4 =     0x08,
+    kRumble_Hight = 0x10,
+    kRumble_Low =   0x20,
+	kbbb =       0x40,
+	kbbbbb =       0x80
+} SixAxisParams;
 
 @protocol PS3SixAxisDelegate <NSObject>
 @optional
@@ -63,6 +73,7 @@
 @interface PS3SixAxis : NSObject {
 @private
 	id<PS3SixAxisDelegate> delegate;
+    BOOL isConnected;
 	BOOL useBuffered;
 	IOHIDManagerRef hidManagerRef;
 	IOHIDDeviceRef hidDeviceRef;
@@ -74,6 +85,8 @@
 
 - (void)connect:(BOOL)enableBluetooth;
 - (void)disconnect;
+
+- (BOOL)setParams:(SixAxisParams)params;
 
 - (void)setDelegate:(id<PS3SixAxisDelegate>)aDelegate;
 - (id<PS3SixAxisDelegate>)delegate;

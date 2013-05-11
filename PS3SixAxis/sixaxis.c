@@ -112,7 +112,7 @@ int process_input_01(const uint8_t *buf, int len, struct sixaxis_state *state)
 {
 	struct sixaxis_state_user *u = &state->user;
 	int i;
-
+    printf("process input\n");
 	if (len < 48) return -1;
 	/* Digital button state */
 	for (i = 0; i < 17; i++) {
@@ -214,7 +214,7 @@ int assemble_feature_f8(uint8_t *buf, int maxlen, struct sixaxis_state *state)
 int process_output_01(const uint8_t *buf, int len, struct sixaxis_state *state)
 {
 	int i;
-
+    printf("process output\n");
 	if (len < 48)
 		return -1;
 

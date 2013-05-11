@@ -54,6 +54,12 @@
     NSLevelIndicator *accellX;
     NSLevelIndicator *accellY;
     NSLevelIndicator *accellZ;
+    
+    NSButton *led1;
+    NSButton *led2;
+    NSButton *led3;
+    NSButton *led4;
+    
 }
 
 @property (assign) IBOutlet NSButton *connectButton;
@@ -99,6 +105,15 @@
 @property (assign) IBOutlet NSLevelIndicator *accellY;
 @property (assign) IBOutlet NSLevelIndicator *accellZ;
 
+@property (assign) IBOutlet NSButton *led1;
+@property (assign) IBOutlet NSButton *led2;
+@property (assign) IBOutlet NSButton *led3;
+@property (assign) IBOutlet NSButton *led4;
+
 - (IBAction) doConnect:(id)sender;
 - (IBAction) doDisconnect:(id)sender;
+
+- (IBAction)rumble_low:(id)sender;
+- (IBAction)rumble_hight:(id)sender;
+- (IBAction)led_checked:(id)sender;
 @end

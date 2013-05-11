@@ -35,6 +35,8 @@
 
 @synthesize accellX, accellY, accellZ;
 
+@synthesize led1, led2, led3, led4;
+
 -(void)applicationDidFinishLaunching:(NSNotification *)aNotification {
 	ps3SixAxis = [PS3SixAxis sixAixisControllerWithDelegate:self];
 	[disconnectButton setEnabled:NO];
@@ -190,8 +192,32 @@
 	[westPressure setIntValue:value];
 }
 
+- (IBAction)rumble_low:(id)sender {
+    [ps3SixAxis setParams:kRumble_Low];
+}
+- (IBAction)rumble_hight:(id)sender {
+    [ps3SixAxis setParams:kRumble_Hight];
+}
+
+- (IBAction)led_checked:(id)sender {
+    uint8_t param = 0;
+    if (led1.state) {
+        param |= kLed1;
+    }
+    if (led2.state) {
+        param |= kLed2;
+    }
+    if (led3.state) {
+        param |= kLed3;
+    }
+    if (led4.state) {
+        param |= kLed4;
+    }
+    [ps3SixAxis setParams:param];
+}
 
 - (BOOL) applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)theApplication {
+    [ps3SixAxis disconnect];
     return YES;
 }
 
